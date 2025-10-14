@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Resume Builder Analytics Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .header {
+      text-align: center;
+      color: white;
+      margin-bottom: 30px;
+    }
+
+    .header h1 {
+      font-size: 2.5rem;
+      margin-bottom: 10px;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    }
+
+    .header p {
+      font-size: 1.1rem;
+      opacity: 0.9;
+    }
+
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 15px;
+      padding: 25px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+    }
+
+    .card h3 {
+      color: #333;
+      margin-bottom: 15px;
+      font-size: 1.3rem;
+      border-bottom: 2px solid #667eea;
+      padding-bottom: 10px;
+    }
+
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .stat-item {
+      text-align: center;
+      padding: 15px;
+      background: #f8f9fa;
+      border-radius: 10px;
+      border-left: 4px solid #667eea;
+    }
+
+    .stat-number {
+      font-size: 2rem;
+      font-weight: bold;
+      color: #667eea;
+      display: block;
+    }
+
+    .stat-label {
+      font-size: 0.9rem;
+      color: #666;
+      margin-top: 5px;
+    }
+
+    .chart-container {
+      position: relative;
+      height: 300px;
+      margin: 20px 0;
+    }
+
+    .keywords-list {
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .keyword-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px;
+      margin: 5px 0;
+      background: #f8f9fa;
+      border-radius: 8px;
+      border-left: 3px solid #667eea;
+    }
+
+    .keyword-text {
+      font-weight: 500;
+      color: #333;
+    }
+
+    .keyword-count {
+      background: #667eea;
+      color: white;
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 0.8rem;
+      font-weight: bold;
+    }
+
+    .job-item {
+      padding: 15px;
+      margin: 10px 0;
+      background: #f8f9fa;
+      border-radius: 10px;
+      border-left: 4px solid #28a745;
+    }
+
+    .job-title {
+      font-weight: bold;
+      color: #333;
+      margin-bottom: 5px;
+    }
+
+    .job-meta {
+      font-size: 0.9rem;
+      color: #666;
+      margin-bottom: 8px;
+    }
+
+    .job-keywords {
+      font-size: 0.8rem;
+      color: #667eea;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #666;
+    }
+
+    .error {
+      background: #f8d7da;
+      color: #721c24;
+      padding: 15px;
+      border-radius: 8px;
+      margin: 10px 0;
+      border: 1px solid #f5c6cb;
+    }
+
+    .refresh-btn {
+      background: #667eea;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 1rem;
+      margin: 20px auto;
+      display: block;
+      transition: background 0.3s ease;
+    }
+
+    .refresh-btn:hover {
+      background: #5a6fd8;
+    }
+
+    .back-link {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      color: white;
+      text-decoration: none;
+      background: rgba(255,255,255,0.2);
+      padding: 10px 20px;
+      border-radius: 25px;
+      transition: background 0.3s ease;
+    }
+
+    .back-link:hover {
+      background: rgba(255,255,255,0.3);
+    }
+  </style>
+</head>
+<body>
+  <a href="/" class="back-link">← Back to Resume Builder</a>
+  
+  <div class="container">
+    <div class="header">
+      <h1>📊 Analytics Dashboard</h1>
+      <p>Resume Builder Usage Statistics & Insights</p>
+    </div>
+
+    <button class="refresh-btn" onclick="loadAnalytics()">🔄 Refresh Data</button>
+
+    <div id="loading" class="loading">
+      <h3>Loading analytics data...</h3>
+    </div>
+
+    <div id="error-container"></div>
+
+    <div id="dashboard" style="display: none;">
+      <!-- Overview Stats -->
+      <div class="dashboard-grid">
+        <div class="card">
+          <h3>📈 Usage Overview</h3>
+          <div class="stat-grid" id="overview-stats">
+            <!-- Stats will be populated here -->
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>🎯 Success Rate</h3>
+          <div class="chart-container">
+            <canvas id="successChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Charts Row -->
+      <div class="dashboard-grid">
+        <div class="card">
+          <h3>📅 Daily Activity (Last 30 Days)</h3>
+          <div class="chart-container">
+            <canvas id="dailyChart"></canvas>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>⏱️ Processing Time Trends</h3>
+          <div class="chart-container">
+            <canvas id="processingChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Keywords and Jobs -->
+      <div class="dashboard-grid">
+        <div class="card">
+          <h3>🔑 Top Keywords</h3>
+          <div class="keywords-list" id="keywords-list">
+            <!-- Keywords will be populated here -->
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>💼 Popular Job Descriptions</h3>
+          <div id="jobs-list">
+            <!-- Jobs will be populated here -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let sessionId = localStorage.getItem('sessionId') || generateSessionId();
+    localStorage.setItem('sessionId', sessionId);
+
+    function generateSessionId() {
+      return 'session_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
+    }
+
+    async function loadAnalytics() {
+      const loadingEl = document.getElementById('loading');
+      const dashboardEl = document.getElementById('dashboard');
+      const errorContainer = document.getElementById('error-container');
+      
+      loadingEl.style.display = 'block';
+      dashboardEl.style.display = 'none';
+      errorContainer.innerHTML = '';
+
+      try {
+        // Track page view
+        await fetch('/api/analytics/track', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Session-ID': sessionId
+          },
+          body: JSON.stringify({ eventType: 'view_analytics' })
+        });
+
+        // Load analytics data
+        const [overviewResponse, dailyResponse, keywordsResponse, jobsResponse] = await Promise.all([
+          fetch('/api/analytics/overview', {
+            headers: { 'X-Session-ID': sessionId }
+          }),
+          fetch('/api/analytics/daily?days=30', {
+            headers: { 'X-Session-ID': sessionId }
+          }),
+          fetch('/api/analytics/keywords?limit=20', {
+            headers: { 'X-Session-ID': sessionId }
+          }),
+          fetch('/api/analytics/jobs?limit=5', {
+            headers: { 'X-Session-ID': sessionId }
+          })
+        ]);
+
+        const [overview, daily, keywords, jobs] = await Promise.all([
+          overviewResponse.json(),
+          dailyResponse.json(),
+          keywordsResponse.json(),
+          jobsResponse.json()
+        ]);
+
+        displayOverview(overview);
+        displayDailyChart(daily);
+        displayKeywords(keywords);
+        displayJobs(jobs);
+
+        loadingEl.style.display = 'none';
+        dashboardEl.style.display = 'block';
+
+      } catch (error) {
+        console.error('Error loading analytics:', error);
+        loadingEl.style.display = 'none';
+        errorContainer.innerHTML = `
+          <div class="error">
+            <strong>Error loading analytics data:</strong> ${error.message}
+          </div>
+        `;
+      }
+    }
+
+    function displayOverview(data) {
+      const statsContainer = document.getElementById('overview-stats');
+      const stats = data.tailoringStats;
+      
+      const successRate = stats.total_tailoring_attempts > 0 
+        ? ((stats.successful_tailoring / stats.total_tailoring_attempts) * 100).toFixed(1)
+        : 0;
+
+      statsContainer.innerHTML = `
+        <div class="stat-item">
+          <span class="stat-number">${stats.total_tailoring_attempts || 0}</span>
+          <div class="stat-label">Total Attempts</div>
+        </div>
+        <div class="stat-item">
+          <span class="stat-number">${stats.successful_tailoring || 0}</span>
+          <div class="stat-label">Successful</div>
+        </div>
+        <div class="stat-item">
+          <span class="stat-number">${successRate}%</span>
+          <div class="stat-label">Success Rate</div>
+        </div>
+        <div class="stat-item">
+          <span class="stat-number">${Math.round(stats.avg_processing_time || 0)}ms</span>
+          <div class="stat-label">Avg Processing</div>
+        </div>
+      `;
+
+      // Create success rate chart
+      const ctx = document.getElementById('successChart').getContext('2d');
+      new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Successful', 'Failed'],
+          datasets: [{
+            data: [stats.successful_tailoring || 0, (stats.total_tailoring_attempts || 0) - (stats.successful_tailoring || 0)],
+            backgroundColor: ['#28a745', '#dc3545'],
+            borderWidth: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom'
+            }
+          }
+        }
+      });
+    }
+
+    function displayDailyChart(data) {
+      const ctx = document.getElementById('dailyChart').getContext('2d');
+      const labels = data.map(d => new Date(d.date).toLocaleDateString()).reverse();
+      const attempts = data.map(d => d.tailoring_attempts).reverse();
+      const successful = data.map(d => d.successful_tailoring).reverse();
+
+      new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Total Attempts',
+            data: attempts,
+            borderColor: '#667eea',
+            backgroundColor: 'rgba(102, 126, 234, 0.1)',
+            tension: 0.4
+          }, {
+            label: 'Successful',
+            data: successful,
+            borderColor: '#28a745',
+            backgroundColor: 'rgba(40, 167, 69, 0.1)',
+            tension: 0.4
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: {
+              beginAtZero: true
+            }
+          }
+        }
+      });
+    }
+
+    function displayKeywords(keywords) {
+      const container = document.getElementById('keywords-list');
+      container.innerHTML = keywords.map(kw => `
+        <div class="keyword-item">
+          <span class="keyword-text">${kw.keyword}</span>
+          <span class="keyword-count">${kw.frequency}</span>
+        </div>
+      `).join('');
+    }
+
+    function displayJobs(jobs) {
+      const container = document.getElementById('jobs-list');
+      container.innerHTML = jobs.map(job => `
+        <div class="job-item">
+          <div class="job-title">Job Description #${job.id}</div>
+          <div class="job-meta">
+            Industry: ${job.industry || 'Unknown'} | 
+            Level: ${job.experience_level || 'Unknown'} | 
+            Used ${job.usage_count} times
+          </div>
+          <div class="job-keywords">
+            Keywords: ${job.keywords || 'None detected'}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Load analytics on page load
+    document.addEventListener('DOMContentLoaded', loadAnalytics);
+  </script>
+</body>
+</html>
