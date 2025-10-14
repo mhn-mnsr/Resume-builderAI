@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Smart Resume Tailor</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h1>Resume Tailor Tool</h1>
+
+  <label for="resume">Paste Resume:</label><br>
+  <textarea id="resume" rows="10" cols="50"></textarea><br><br>
+
+  <label for="job">Paste Job Description:</label><br>
+  <textarea id="job" rows="10" cols="50"></textarea><br><br>
+
+  <button onclick="tailorResume()">Tailor My Resume</button>
+  
+  <h2>Tailored Suggestions</h2>
+  <div id="output"></div>
+
+  <script src="script.js"></script>
+</body>
+</html>
